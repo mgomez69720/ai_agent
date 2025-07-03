@@ -1,44 +1,47 @@
-import os
 import sys
-from dotenv import load_dotenv
+import os
 from google import genai
-
-load_dotenv()
-api_key = os.environ.get("GEMINI_API_KEY")
-client = genai.Client(api_key=api_key)
-
-if len(sys.argv[1:])==0:
-    print("Usage: python3 main.py <prompt>")
-    # sys.exit(1) = abnormal termination   (0) would be normal
-    sys.exit(1)
-
+from google.genai import types
+from dotenv import load_dotenv
 
 
 def main():
-    try:
-        input = sys.argv[1:]
-    except Exception as e:
-        print("Usage: python3 main.py <prompt>")
-        # sys.exit(1) = abnormal termination   (0) would be normal
-        sys.exit(1) 
+    load_dotenv()
+
+    verbose = "--verbose" in sys.argv
+    args = [arg for arg in sys.argv[1:] if not arg.startswith("--")]
+
+    if not args:
+        print("AI Code Assistant")
+        print('\nUsage: python main.py "your prompt here" [--verbose]')
+        print('Example: python main.py "How do I build a calculator app?"')
+        sys.exit(1)
+
+    api_key = os.environ.get("GEMINI_API_KEY")
+    client = genai.Client(api_key=api_key)
+
+    user_prompt = " ".join(args)
+
+    if verbose:
+        print(f"User prompt: {user_prompt}\n")
+
+    messages = [
+        types.Content(role="user", parts=[types.Part(text=user_prompt)]),
+    ]
+
+    generate_content(client, messages, verbose)
 
 
+def generate_content(client, messages, verbose):
     response = client.models.generate_content(
-        model='gemini-2.0-flash-001', contents=input
+        model="gemini-2.0-flash-001",
+        contents=messages,
     )
+    if verbose:
+        print("Prompt tokens:", response.usage_metadata.prompt_token_count)
+        print("Response tokens:", response.usage_metadata.candidates_token_count)
+    print("Response:")
     print(response.text)
-    print("---------------")
-    print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
-    print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
-
-
-
-
-
-
-
-
-
 
 
 if __name__ == "__main__":
